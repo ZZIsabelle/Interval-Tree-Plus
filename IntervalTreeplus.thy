@@ -1,17 +1,18 @@
 theory IntervalTreeplus
   imports   
   "Interval_Set"
+begin  
 
-begin   
-fun baliL :: "('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> ('a ivl * 'a) \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where
+fun baliL :: "'a RBs_ivl_tree \<Rightarrow> ('a ivl * 'a) \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where
 "baliL (R (R t1 a t2) b t3) c t4 = R (B t1 a t2) b (B t3 c t4)" |
 "baliL (R t1 a (R t2 b t3)) c t4 = R (B t1 a t2) b (B t3 c t4)" |
 "baliL t1 a t2 = B t1 a t2"
 
-fun baliR :: "('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> ('a ivl * 'a) \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where                                                     
+fun baliR :: "'a RBs_ivl_tree \<Rightarrow> ('a ivl * 'a) \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where                                                     
 "baliR t1 a (R t2 b (R t3 c t4)) = R (B t1 a t2) b (B t3 c t4)" |
 "baliR t1 a (R (R t2 b t3) c t4) = R (B t1 a t2) b (B t3 c t4)" |
 "baliR t1 a t2 = B t1 a t2"
+
 
 fun baldL :: "('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> ('a ivl * 'a) \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where
 "baldL (R t1 a t2) b t3 = R (B t1 a t2) b t3" |
@@ -41,8 +42,7 @@ fun invh :: "('a::{linorder,order_bot}) RBs_ivl_tree  \<Rightarrow> bool" where
  "invh Leaf = True" |                                      
  "invh (Node l (x, c) r) = (bheight l = bheight r \<and> invh l \<and> invh r)"
 
-definition empty :: "'a RBs_ivl_tree" where
-"empty = Leaf"
+definition empty :: "'a RBs_ivl_tree" where "empty = Leaf"
 
 fun ins :: "'a::{linorder,order_bot} ivl \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" 
   where
@@ -58,15 +58,23 @@ fun ins :: "'a::{linorder,order_bot} ivl \<Rightarrow> 'a RBs_ivl_tree \<Rightar
     GT \<Rightarrow> (R l (a,m) (ins x r)) |
     EQ \<Rightarrow> R l (a,m) r)"
 
+(*
+export_code ins in Go
+code_reflect ins
+code_deps ins
+code_thms ins 
+code_printing ins in Haskell 
+*)
 definition insert_IntervalT::"'a::{linorder,order_bot} ivl \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" 
   where"insert_IntervalT x t = node (paint Black (ins x t))"
- 
+
 fun split_min :: "'a::{linorder,order_bot} RBs_ivl_tree \<Rightarrow> (('a ivl*'a) * 'a RBs_ivl_tree)" where
 "split_min (Node l ((a, m),_)  r) =
   (if l = Leaf then ((a,m),r)
    else let (x,l') = split_min l 
          in (x, if interval_color l = Black then baldL l' (a,m) r else R l' (a,m) r))"
- 
+
+
 fun del :: "'a::{linorder,order_bot} ivl \<Rightarrow> 'a RBs_ivl_tree \<Rightarrow> 'a RBs_ivl_tree" where
 "del x Leaf = Leaf" |
 "del x (Node l ((a, m),_) r) =
@@ -95,8 +103,8 @@ definition inv_bst::"('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> bool"
 fun inv_color::"'a::{linorder,order_bot} RBs_ivl_tree \<Rightarrow> bool"
   where"inv_color t = (interval_color t = Black)"
 
-definition inv_rb_it :: "('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> bool" 
-  where"inv_rb_it t = (inv_max_hi t \<and> inv_bst t \<and>invc t \<and> invh t \<and> inv_color t)"
+definition invar_BItree :: "('a::{linorder,order_bot}) RBs_ivl_tree \<Rightarrow> bool" 
+  where" invar_BItree t = (inv_max_hi t \<and> inv_bst t \<and>invc t \<and> invh t \<and> inv_color t)"
                                                                      
 fun isin_IntervalT :: "'a::{linorder,order_bot} RBs_ivl_tree \<Rightarrow> 'a ivl \<Rightarrow> bool" where
 "isin_IntervalT Leaf x = False" |
@@ -160,7 +168,7 @@ lemma isin_set_inorder: "sorted(inorder t) \<Longrightarrow> isin_IntervalT t x 
   apply (meson cmp_def)
   by auto
 
-theorem inorder_insert:
+lemma inorder_insert:
   "sorted(inorder t) \<Longrightarrow> inorder(insert_IntervalT x t) = ins_list x (inorder t)"
   by (auto simp add: insert_IntervalT_def inorder_ins inorder_paint inorder_node)
 
@@ -209,7 +217,7 @@ lemma inv_max_hi_delete:
 
 lemma search_correct:
   "inv_max_hi t \<and> sorted(inorder t) \<Longrightarrow> search t x = has_overlap (set_tree t) x"
-  apply(induct t)
+  apply(induct t rule: tree2_induct)
   apply(auto simp : has_overlap_def overlap_def)
   apply(metis UnCI sorted_cons sorted_wrt_append)
   apply(metis UnCI sorted_cons sorted_wrt_append)
@@ -217,8 +225,10 @@ lemma search_correct:
   apply(meson sorted_mid_iff sorted_snoc)
   apply(metis dual_order.trans max_hi_is_max)
   apply(metis (no_types) dual_order.trans max_hi_is_max)
-  apply(metis set_inorder ivl_less_eq linorder_not_less order_le_less_trans sorted_Cons_iff sorted_mid_iff)
-  apply(metis set_inorder dual_order.strict_trans1 ivl_is_interval ivl_less_eq linorder_not_less max_hi_exists sorted_mid_iff sorted_snoc_iff)
+  apply(metis set_inorder ivl_less_eq linorder_not_less order_le_less_trans
+           sorted_Cons_iff sorted_mid_iff)
+  apply(metis set_inorder dual_order.strict_trans1 ivl_is_interval 
+          ivl_less_eq linorder_not_less max_hi_exists sorted_mid_iff sorted_snoc_iff)
   apply(metis sorted_cons sorted_mid_iff)
   by(metis sorted_cons sorted_mid_iff)
 
@@ -304,9 +314,9 @@ lemma invh_node:"invh t \<Longrightarrow> invh(node t)"
   apply(auto simp:Let_def )
   by(metis bheight_node)
   
-lemma inv_node:"inv_rb_it t \<Longrightarrow> inv_rb_it (node t)"
+lemma inv_node:"invar_BItree t \<Longrightarrow> invar_BItree (node t)"
   apply(induct t)
-  apply (auto simp :inv_rb_it_def)
+  apply (auto simp :invar_BItree_def)
   apply (metis node_correct inv_max_hi.simps(2))
   apply (metis Interval_Set.inorder.simps(2) inorder_node inv_bst_def )
   apply (metis (full_types) invc.simps(2) neq_Black invc_node)
@@ -421,34 +431,66 @@ lemma inv_del: "\<lbrakk> invh t; invc t \<rbrakk> \<Longrightarrow>
       dest: neq_LeafD 
         split!: prod.splits if_splits)
 
-theorem set_isin:"inv_rb_it t \<Longrightarrow> isin_IntervalT t x = (x \<in> set_tree t)"
-  by (simp add: isin_set_inorder inv_bst_def inv_rb_it_def)
+theorem set_isin:"invar_BItree t \<Longrightarrow> isin_IntervalT t x = (x \<in> set_tree t)"
+  by (simp add: isin_set_inorder inv_bst_def invar_BItree_def)
 
-theorem set_insert:"inv_rb_it t \<Longrightarrow>set_tree (insert_IntervalT x t) = set_tree t \<union> {x}"
-  by(simp add: inorder_insert set_ins_list inv_rb_it_def flip: set_inorder inv_bst_def)
+theorem set_insert:"invar_BItree t \<Longrightarrow>set_tree (insert_IntervalT x t) = set_tree t \<union> {x}"
+  apply(simp add:invar_BItree_def inv_bst_def)
+  by(simp add: inorder_insert set_ins_list flip: set_inorder)
 
-theorem set_delete:"inv_rb_it t \<Longrightarrow>set_tree (delete_IntervalT x t) = set_tree t - {x}"
-  by(simp add: inorder_del set_del_list inv_rb_it_def flip: set_inorder inv_bst_def)
+theorem set_delete:"invar_BItree t \<Longrightarrow>set_tree (delete_IntervalT x t) = set_tree t - {x}"
+   apply(simp add:invar_BItree_def inv_bst_def)
+  by(simp add: inorder_del set_del_list flip: set_inorder)
 
-theorem rbt_insert: "inv_rb_it t \<Longrightarrow> inv_rb_it (insert_IntervalT x t)"
-  apply (auto simp add:invh_paint inv_rb_it_def insert_IntervalT_def)
-  apply (simp add: node_correct )
-  apply (simp add: inorder_ins inorder_node inorder_paint sorted_ins_list inv_bst_def)
-  apply (simp add: invc_ins invc_node)
-  apply (simp add: inv_ins invh_paint invh_node )
+lemma insert_max_hi:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+        \<Longrightarrow> interval_color t = Black \<Longrightarrow> inv_max_hi (node (paint Black (ins x t)))"
+  by (simp add: node_correct)
+lemma insert_bst:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+                    \<Longrightarrow> interval_color t = Black \<Longrightarrow> inv_bst (node (paint Black (ins x t)))"
+  by(simp add:inorder_ins inorder_node inorder_paint sorted_ins_list inv_bst_def)
+lemma insert_invc:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+                    \<Longrightarrow> interval_color t = Black \<Longrightarrow> invc (node (paint Black (ins x t)))"
+  by(simp add: invc_ins invc_node)
+lemma insert_invh:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+    \<Longrightarrow> interval_color t = Black \<Longrightarrow> invh (node (paint Black (ins x t)))"
+  by(simp add: inv_ins invh_node invh_paint)
+lemma insert_interval_color:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow>invh t 
+     \<Longrightarrow> interval_color t = Black \<Longrightarrow> interval_color (node (paint Black (ins x t))) = Black"
   by (simp add: color_paint_Black ins_color_node)
 
-theorem rbt_delete: "inv_rb_it t \<Longrightarrow> inv_rb_it (delete_IntervalT x t)"
-  apply(auto simp: delete_IntervalT_def  inv_rb_it_def node_correct )
-  apply (metis delete_IntervalT_def inorder_del sorted_del_list inv_bst_def)
-  apply (simp add: inv_del invc_node)
-  apply (simp add: inv_del invh_paint invh_node)
+theorem BIT_insert: "invar_BItree t \<Longrightarrow> invar_BItree (insert_IntervalT x t)"
+ apply (auto simp add:invar_BItree_def insert_IntervalT_def)
+ using insert_max_hi insert_bst insert_invc insert_invh insert_interval_color 
+ by auto
+
+lemma delete_max_hi:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+      \<Longrightarrow> interval_color t = Black \<Longrightarrow> inv_max_hi (node (paint Black (del x t)))"
+  by (simp add: node_correct)
+lemma delete_bst:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+      \<Longrightarrow> interval_color t = Black \<Longrightarrow> inv_bst (node (paint Black (del x t)))"
+  by(metis delete_IntervalT_def inorder_del sorted_del_list inv_bst_def)
+
+lemma delete_invc:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+       \<Longrightarrow> interval_color t = Black \<Longrightarrow> invc (node (paint Black (del x t)))"
+  by (simp add: inv_del invc_node)
+lemma delete_invh:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow> invh t 
+        \<Longrightarrow> interval_color t = Black \<Longrightarrow> invh (node (paint Black (del x t)))"
+  by (simp add: inv_del invh_node invh_paint)
+lemma delete_interval_color:"inv_max_hi t \<Longrightarrow>inv_bst t \<Longrightarrow>invc t \<Longrightarrow>invh t 
+    \<Longrightarrow> interval_color t = Black \<Longrightarrow> interval_color (node (paint Black (del x t))) = Black"
   by (simp add: color_paint_Black del_color_node)
 
-theorem rbt_search:
-  "inv_rb_it t\<Longrightarrow> search t x = has_overlap (set_tree t) x"
-  by (simp add: inv_rb_it_def search_correct inv_bst_def)
-                                    
+
+theorem BIT_delete: "invar_BItree t \<Longrightarrow> invar_BItree (delete_IntervalT x t)"
+  apply(auto simp: delete_IntervalT_def invar_BItree_def)
+  using delete_max_hi delete_bst delete_invc delete_invh delete_interval_color
+  by auto
+
+
+theorem BIT_search:
+  "invar_BItree t\<Longrightarrow> search t x = has_overlap (set_tree t) x"
+  by (simp add: invar_BItree_def search_correct inv_bst_def)
+
 end
   
 
